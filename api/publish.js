@@ -1,81 +1,174 @@
-export default async function handler(req, res) {
+export default async function handler(req) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      message: "Method not allowed"
-    });
+    return new Response(
+      JSON.stringify({
+        message: "Method not allowed"
+      }),
+      {
+        status: 405,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
   }
 
   try {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const token =
+      process.env.TELEGRAM_BOT_TOKEN;
+
+    const chatId =
+      process.env.TELEGRAM_CHAT_ID;
 
     if (!token) {
-      return res.status(500).json({
-        message: "Bot token is not configured"
-      });
-    }
-
-    const formData = await req.formData();
-
-    const text = formData.get("text");
-    const image = formData.get("image");
-
-    const chatId = process.env.TELEGRAM_CHAT_ID;
-
-    if (!chatId) {
-      return res.status(500).json({
-        message: "Telegram channel is not configured"
-      });
-    }
-
-    let response;
-
-    if (image) {
-      const telegramData = new FormData();
-
-      telegramData.append("chat_id", chatId);
-      telegramData.append("caption", text || "");
-      telegramData.append("photo", image);
-
-      response = await fetch(
-        `https://api.telegram.org/bot${token}/sendPhoto`,
+      return new Response(
+        JSON.stringify({
+          message: "TELEGRAM_BOT_TOKEN is missing"
+        }),
         {
-          method: "POST",
-          body: telegramData
-        }
-      );
-    } else {
-      response = await fetch(
-        `https://api.telegram.org/bot${token}/sendMessage`,
-        {
-          method: "POST",
+          status: 500,
           headers: {
             "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: text || ""
-          })
+          }
         }
       );
     }
 
-    const result = await response.json();
-
-    if (!response.ok || !result.ok) {
-      return res.status(500).json({
-        message: result.description || "Telegram error"
-      });
+    if (!chatId) {
+      return new Response(
+        JSON.stringify({
+          message: "TELEGRAM_CHAT_ID is missing"
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
     }
 
-    return res.status(200).json({
-      success: true
-    });
+    const formData =
+      await req.formData();
+
+    const text =
+      formData.get("text") || "";
+
+    const image =
+      formData.get("image");
+
+
+    let telegramResponse;
+
+
+    if (image && image.size > 0) {
+
+      const telegramForm =
+        new FormData();
+
+      telegramForm.append(
+        "chat_id",
+        chatId
+      );
+
+      telegramForm.append(
+        "caption",
+        text
+      );
+
+      telegramForm.append(
+        "photo",
+        image
+      );
+
+
+      telegramResponse =
+        await fetch(
+          `https://api.telegram.org/bot${token}/sendPhoto`,
+          {
+            method: "POST",
+            body: telegramForm
+          }
+        );
+
+    } else {
+
+      telegramResponse =
+        await fetch(
+          `https://api.telegram.org/bot${token}/sendMessage`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: text
+            })
+          }
+        );
+
+    }
+
+
+    const result =
+      await telegramResponse.json();
+
+
+    if (!telegramResponse.ok ||
+        !result.ok) {
+
+      return new Response(
+        JSON.stringify({
+          message:
+            result.description ||
+            "Telegram API error"
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type":
+              "application/json"
+          }
+        }
+      );
+    }
+
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message:
+          "Published successfully"
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type":
+            "application/json"
+        }
+      }
+    );
+
 
   } catch (error) {
 
-    return res.status(500).json({
-      message: error.message
-    });
+    return new Response(
+      JSON.stringify({
+        message:
+          error.message
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type":
+            "application/json"
+        }
+      }
+    );
 
   }
 }
