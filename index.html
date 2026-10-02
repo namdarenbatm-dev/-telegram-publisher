@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>ناشر رادار پرداخت</title>
 
   <style>
@@ -14,13 +13,13 @@
     body {
       margin: 0;
       font-family: Tahoma, Arial, sans-serif;
-      background: #f4f5f7;
-      color: #222;
+      background: #f3f4f6;
+      color: #111827;
     }
 
     .container {
       max-width: 700px;
-      margin: 0 auto;
+      margin: auto;
       padding: 20px;
     }
 
@@ -29,7 +28,7 @@
       color: white;
       border-radius: 20px;
       padding: 24px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .header h1 {
@@ -39,16 +38,19 @@
 
     .header p {
       margin: 0;
-      opacity: .75;
-      font-size: 14px;
+      opacity: .7;
     }
 
     .card {
       background: white;
-      border-radius: 20px;
+      border-radius: 18px;
       padding: 20px;
       margin-bottom: 16px;
       box-shadow: 0 5px 20px rgba(0,0,0,.05);
+    }
+
+    .field {
+      margin-bottom: 18px;
     }
 
     label {
@@ -60,11 +62,11 @@
     textarea,
     input {
       width: 100%;
+      padding: 13px;
       border: 1px solid #ddd;
       border-radius: 12px;
-      padding: 13px;
-      font-size: 15px;
       font-family: inherit;
+      font-size: 15px;
       outline: none;
     }
 
@@ -78,33 +80,11 @@
       border-color: #111827;
     }
 
-    .field {
-      margin-bottom: 18px;
-    }
-
-    .preview {
-      border: 1px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 16px;
-      background: #fafafa;
-      white-space: pre-wrap;
-      min-height: 100px;
-    }
-
-    .image-preview {
-      width: 100%;
-      max-height: 350px;
-      object-fit: contain;
-      border-radius: 12px;
-      margin-top: 12px;
-      display: none;
-    }
-
     button {
       width: 100%;
-      border: 0;
-      border-radius: 14px;
       padding: 15px;
+      border: 0;
+      border-radius: 13px;
       font-family: inherit;
       font-size: 16px;
       font-weight: bold;
@@ -114,25 +94,44 @@
     .preview-btn {
       background: #e5e7eb;
       color: #111827;
-      margin-bottom: 10px;
+      margin-top: 5px;
     }
 
     .publish-btn {
       background: #111827;
       color: white;
+      margin-top: 10px;
     }
 
     .publish-btn:disabled {
       opacity: .5;
-      cursor: not-allowed;
+    }
+
+    .preview {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      min-height: 100px;
+      white-space: pre-wrap;
+      line-height: 1.8;
+    }
+
+    #imagePreview {
+      width: 100%;
+      max-height: 350px;
+      object-fit: contain;
+      border-radius: 12px;
+      margin-top: 12px;
+      display: none;
     }
 
     .status {
+      display: none;
       margin-top: 14px;
       padding: 12px;
       border-radius: 12px;
-      display: none;
-      font-size: 14px;
+      text-align: center;
     }
 
     .hint {
@@ -159,7 +158,7 @@
 
       <textarea
         id="postText"
-        placeholder="متن پست را اینجا بنویسید..."></textarea>
+        placeholder="متن پست را بنویسید..."></textarea>
     </div>
 
     <div class="field">
@@ -170,13 +169,7 @@
         id="imageInput"
         accept="image/*">
 
-      <div class="hint">
-        در صورت نیاز یک تصویر برای پست انتخاب کنید.
-      </div>
-
-      <img
-        id="imagePreview"
-        class="image-preview">
+      <img id="imagePreview">
     </div>
 
     <div class="field">
@@ -188,7 +181,7 @@
         placeholder="https://...">
 
       <div class="hint">
-        لینک اپ را وارد کنید تا در انتهای پست قرار بگیرد.
+        لینک اپ در انتهای پست قرار می‌گیرد.
       </div>
     </div>
 
@@ -200,17 +193,17 @@
 
   </div>
 
+
   <div class="card">
 
-    <label>پیش‌نمایش پست</label>
+    <label>پیش‌نمایش</label>
 
-    <div
-      id="preview"
-      class="preview">
-      هنوز چیزی برای نمایش وجود ندارد.
+    <div id="preview" class="preview">
+      هنوز چیزی وارد نشده است.
     </div>
 
   </div>
+
 
   <div class="card">
 
@@ -223,7 +216,8 @@
 
     <div
       id="status"
-      class="status"></div>
+      class="status">
+    </div>
 
   </div>
 
@@ -232,154 +226,208 @@
 
 <script>
 
-  const imageInput = document.getElementById("imageInput");
-  const imagePreview = document.getElementById("imagePreview");
-
-  imageInput.addEventListener("change", function () {
-
-    const file = this.files[0];
-
-    if (!file) {
-      imagePreview.style.display = "none";
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = function (e) {
-      imagePreview.src = e.target.result;
-      imagePreview.style.display = "block";
-    };
-
-    reader.readAsDataURL(file);
-  });
+const BACKEND_URL =
+  "https://telegram-publisher-namdarenbatm-7656s-projects.vercel.app/api/publish";
 
 
-  function getPostText() {
+const imageInput =
+  document.getElementById("imageInput");
 
-    const text =
-      document.getElementById("postText").value.trim();
+const imagePreview =
+  document.getElementById("imagePreview");
 
-    const link =
-      document.getElementById("appLink").value.trim();
 
-    let result = text;
+imageInput.addEventListener("change", function () {
 
-    if (link) {
-      result += "\n\n🔗 ورود به اپ:\n" + link;
-    }
+  const file = this.files[0];
 
-    return result;
+  if (!file) {
+    imagePreview.style.display = "none";
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+
+    imagePreview.src = e.target.result;
+    imagePreview.style.display = "block";
+
+  };
+
+  reader.readAsDataURL(file);
+
+});
+
+
+function getPostText() {
+
+  const text =
+    document.getElementById("postText").value.trim();
+
+  const link =
+    document.getElementById("appLink").value.trim();
+
+  let result = text;
+
+  if (link) {
+
+    result +=
+      "\n\n🔗 ورود به اپ:\n" +
+      link;
+
+  }
+
+  return result;
+
+}
+
+
+function showPreview() {
+
+  const text = getPostText();
+
+  const preview =
+    document.getElementById("preview");
+
+  if (!text) {
+
+    preview.textContent =
+      "لطفاً متن پست را وارد کنید.";
+
+    return;
+  }
+
+  preview.textContent = text;
+
+}
+
+
+async function publishPost() {
+
+  const text = getPostText();
+
+  if (!text) {
+
+    showStatus(
+      "لطفاً متن پست را وارد کنید.",
+      false
+    );
+
+    return;
   }
 
 
-  function showPreview() {
+  const button =
+    document.getElementById("publishBtn");
 
-    const preview =
-      document.getElementById("preview");
-
-    const text = getPostText();
-
-    if (!text) {
-      preview.textContent =
-        "لطفاً ابتدا متن پست را وارد کنید.";
-      return;
-    }
-
-    preview.textContent = text;
-  }
+  const image =
+    imageInput.files[0];
 
 
-  async function publishPost() {
+  button.disabled = true;
 
-    const text = getPostText();
+  button.textContent =
+    "⏳ در حال انتشار...";
 
-    if (!text) {
-      showStatus(
-        "لطفاً متن پست را وارد کنید.",
-        false
+
+  try {
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "text",
+      text
+    );
+
+
+    if (image) {
+
+      formData.append(
+        "image",
+        image
       );
-      return;
+
     }
 
-    const image =
-      imageInput.files[0];
 
-    const button =
-      document.getElementById("publishBtn");
-
-    button.disabled = true;
-    button.textContent = "در حال انتشار...";
-
-    try {
-
-      const formData = new FormData();
-
-      formData.append("text", text);
-
-      if (image) {
-        formData.append("image", image);
-      }
-
-      /*
-        آدرس Backend را بعداً اینجا قرار می‌دهیم.
-
-        مثال:
-
-        https://YOUR-BACKEND-URL/api/publish
-      */
-
-      const response = await fetch(
-        "BACKEND_URL_HERE",
+    const response =
+      await fetch(
+        BACKEND_URL,
         {
           method: "POST",
           body: formData
         }
       );
 
-      const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          result.message || "خطا در انتشار"
-        );
-      }
+    const result =
+      await response.json();
 
-      showStatus(
-        "✅ پست با موفقیت منتشر شد.",
-        true
+
+    if (!response.ok) {
+
+      throw new Error(
+        result.message ||
+        "خطا در انتشار"
       );
-
-    } catch (error) {
-
-      showStatus(
-        "❌ هنوز Backend متصل نشده است.",
-        false
-      );
-
-    } finally {
-
-      button.disabled = false;
-      button.textContent = "📤 انتشار در کانال";
 
     }
+
+
+    showStatus(
+      "✅ پست با موفقیت در کانال منتشر شد.",
+      true
+    );
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    showStatus(
+      "❌ انتشار انجام نشد: " +
+      error.message,
+      false
+    );
+
   }
 
 
-  function showStatus(message, success) {
+  button.disabled = false;
 
-    const status =
-      document.getElementById("status");
+  button.textContent =
+    "📤 انتشار در کانال";
 
-    status.textContent = message;
-    status.style.display = "block";
+}
 
-    status.style.background =
-      success ? "#dcfce7" : "#fee2e2";
 
-    status.style.color =
-      success ? "#166534" : "#991b1b";
-  }
+function showStatus(
+  message,
+  success
+) {
+
+  const status =
+    document.getElementById("status");
+
+  status.textContent =
+    message;
+
+  status.style.display =
+    "block";
+
+  status.style.background =
+    success
+      ? "#dcfce7"
+      : "#fee2e2";
+
+  status.style.color =
+    success
+      ? "#166534"
+      : "#991b1b";
+
+}
 
 </script>
 
